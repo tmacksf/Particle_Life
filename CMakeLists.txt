@@ -3,4 +3,15 @@ project(Particle_Life)
 
 set(CMAKE_CXX_STANDARD 17)
 
-add_executable(Particle_Life main.cpp)
+add_executable(Particle_Life main.cpp Particles.cpp Particle.cpp)
+
+find_package(OpenGL)
+
+set(GLFW_BUILD_DOCS OFF CACHE BOOL "" FORCE)
+set(GLFW_BUILD_TESTS OFF CACHE BOOL "" FORCE)
+set(GLFW_BUILD_EXAMPLES OFF CACHE BOOL "" FORCE)
+
+add_subdirectory(Dependencies/GLFW)
+add_subdirectory( ${PROJECT_SOURCE_DIR}/Dependencies/GLEW/build/cmake)
+
+target_link_libraries(Particle_Life glfw ${OPENGL_gl_LIBRARY})
