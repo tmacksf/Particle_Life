@@ -3,6 +3,7 @@
 //
 
 #include "Particles.h"
+
 void Particles::Update() {
     for (Particle p : m_particles) {
         float accelerationX = 0;

@@ -25,6 +25,7 @@ public:
 
     static float interaction[5][5];
 
+
     void setColor(Color c) {m_color = c;}
     Color getColor() {return m_color;}
 
