@@ -10,9 +10,10 @@
 
 class Particles {
 private:
-    std::array<Particle, numParticles> m_particles;
+    std::array<Particle, numParticles> m_particles{};
 
 public:
+    Particles();
     void Start();
     void Update();
     Particle &getIndividual(int index) {

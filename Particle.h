@@ -23,8 +23,9 @@ public:
         m_yVelocity = yVelocity;
     }
 
-    static float interaction[5][5];
+    Particle() = default;
 
+    static float interaction[5][5];
 
     void setColor(Color c) {m_color = c;}
     Color getColor() {return m_color;}
@@ -41,13 +42,22 @@ public:
     static void initInteractions(int numColors);
 
     void updateVelocity(const float accelerationX, const float accelerationY) {
-        m_yVelocity += accelerationY;
-        m_xVelocity += accelerationX;
+        if ((m_yVelocity + m_xVelocity) < maxVelocity) {
+            m_yVelocity += accelerationY;
+             m_xVelocity += accelerationX;
+        }
     }
 
     void updatePosition() {
-        m_xPos += m_xVelocity;
-        m_yPos += m_yVelocity;
+        // checking to see if particle is in the screen
+        if ((m_xPos + m_xVelocity) > screenWidth or (m_xPos + m_xVelocity) < 0.0f) {
+            m_xVelocity *= -1.0f;
+        }
+        else m_xPos += m_xVelocity;
+        if ((m_yPos + m_yVelocity) > screenHeight or (m_yPos + m_yVelocity) < 0.0f) {
+            m_yVelocity = -1.0f;
+        }
+        else m_yPos += m_yVelocity;
     }
 
     float interactionWithX(const Color &interactionWith, const float &distance, const float &xDistance);

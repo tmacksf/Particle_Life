@@ -25,3 +25,23 @@ void Particles::Update() {
 void Particles::Start() {
 
 }
+
+Particles::Particles() {
+    // even color spread
+    int particlesPerColor = numParticles/numColors;
+    Color colorIndex = one;
+    int temp = particlesPerColor;
+    for (int i = 0; i < numParticles; i++) {
+        float initialX = rand() % (int)screenWidth;
+        float initialY = rand() % (int)screenHeight;
+        float initialXVelocity = rand() % 10;
+        float initialYVelocity = rand() % 10;
+        m_particles[i] = Particle(colorIndex, initialX, initialY, initialXVelocity, initialYVelocity);
+        temp--;
+
+        if (!temp) {
+            colorIndex = addColor(colorIndex);
+            temp = particlesPerColor;
+        }
+    }
+}

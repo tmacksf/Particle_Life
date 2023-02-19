@@ -13,3 +13,11 @@ float Particle::interactionWithX(const Color &interactionWith, const float &dist
 float Particle::interactionWithY(const Color &interactionWith, const float &distance, const float &yDistance) {
     return distanceOnVelocity(distance)*yDistance/distance * Particle::interaction[m_color][interactionWith];
 }
+
+void Particle::initInteractions(int colorNum) {
+    for (int i = 0; i < colorNum; i++) {
+        for (int j = 0; j < colorNum; j++){
+            interaction[i][j] = 0;
+        }
+    }
+}
