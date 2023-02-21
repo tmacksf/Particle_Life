@@ -6,12 +6,17 @@
 #define PARTICLE_LIFE_DEFINITIONS_H
 
 
+#include <GL/glew.h>
+#include <GLFW/glfw3.h>
 #include <cstdlib>
 #include <array>
 #include <cmath>
 #include <random>
 #include <ctime>
 #include <iostream>
+#include <chrono>
+#include <fstream>
+#include <sstream>
 
 
 enum Color : int {

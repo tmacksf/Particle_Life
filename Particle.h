@@ -53,11 +53,15 @@ public:
         if ((m_xPos + m_xVelocity) > screenWidth or (m_xPos + m_xVelocity) < 0.0f) {
             m_xVelocity *= -1.0f;
         }
-        else m_xPos += m_xVelocity;
+        else {
+            m_xPos += m_xVelocity;
+        }
         if ((m_yPos + m_yVelocity) > screenHeight or (m_yPos + m_yVelocity) < 0.0f) {
             m_yVelocity = -1.0f;
         }
-        else m_yPos += m_yVelocity;
+        else {
+            m_yPos += m_yVelocity;
+        }
     }
 
     float interactionWithX(const Color &interactionWith, const float &distance, const float &xDistance);
