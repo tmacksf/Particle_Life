@@ -3,8 +3,9 @@
 #include "Engine.h"
 
 int main() {
-    std::cout << "Bot" << std::endl;
     std::srand(time(nullptr));
-    Engine::run();
+    Particles particles{};
+    particles.Start();
+    Engine::run(particles);
     return 0;
 }

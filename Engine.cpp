@@ -55,7 +55,7 @@ unsigned int Engine::CompileShader(unsigned int type, const std::string &source)
     return id;
 }
 
-int Engine::run() {
+int Engine::run(Particles &particles) {
     GLFWwindow* window;
 
     /* Initialize the library */
@@ -89,11 +89,28 @@ int Engine::run() {
 
     std::cout << glGetString(GL_VERSION) << std::endl;
 
-    float vertices[6] = {
-            -0.5f, -0.5f,
-            0.0f, 0.5f,
-            0.5f, -0.5f
-    };
+    // will have the x,y and r,g,b in this
+    const int elementsPerPoint = 2;
+    float points[numParticles*elementsPerPoint];
+    int index = 0;
+    for (Particle p: particles.m_particles) {
+        points[index] = (p.getX()/screenWidth - .5f)*2.0f; // --LUKE
+        index ++;
+        points[index] = (p.getY()/screenHeight - .5f)*2.0f;
+        index++;
+    }
+
+    const int rgb = 3;
+    float colors[numParticles*3];
+    index = 0;
+    for (Particle p : particles.m_particles) {
+        colors[index] = ColorArray[p.getColor()][0];
+        index++;
+        colors[index] = ColorArray[p.getColor()][1];
+        index++;
+        colors[index] = ColorArray[p.getColor()][2];
+        index++;
+    }
 
     unsigned int buffer;
     unsigned int VAO;
@@ -101,12 +118,12 @@ int Engine::run() {
     glBindVertexArray(VAO);
     glGenBuffers(1, &buffer);
     glBindBuffer(GL_ARRAY_BUFFER, buffer);
-    glBufferData(GL_ARRAY_BUFFER, 6 * sizeof(float), vertices, GL_STATIC_DRAW);
+    glBufferData(GL_ARRAY_BUFFER, numParticles * elementsPerPoint * sizeof(float), points, GL_STATIC_DRAW);
+    //glBufferData(GL_ARRAY_BUFFER, numParticles * elementsPerPoint * sizeof(float), points, GL_DYNAMIC_DRAW);
 
     glEnableVertexAttribArray(0);
-    glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, sizeof(float) * 2, 0);
+    glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, sizeof(float) * elementsPerPoint, nullptr);
 
-    // TODO make parser so the shaders can be read in
     std::string vertexShader;
     parseShader("../res/vertex.shader", vertexShader);
     std::string fragmentShader;
@@ -116,18 +133,31 @@ int Engine::run() {
     glUseProgram(shader);
 
     glBindBuffer(GL_ARRAY_BUFFER, 0);
+    glEnable(GL_POINTS);
+    glPointSize(5);
     /* Loop until the user closes the window */
     while (!glfwWindowShouldClose(window))
     {
         // Render here
-        glClear(GL_COLOR_BUFFER_BIT);
-
-        glDrawArrays(GL_TRIANGLES, 0, 3);
+        glDrawArrays(GL_POINTS, 0, numParticles*2);
+        //glDeleteBuffers(numParticles*2, &buffer);
         // Swap front and back buffers
         glfwSwapBuffers(window);
+        // GPU waits one swap interval before updating
+        glfwSwapInterval(1);
 
         // Poll for and process events
         glfwPollEvents();
+
+        // Particles updated
+        particles.Update();
+        updateArray(points, particles);
+
+        glBindBuffer(GL_ARRAY_BUFFER, buffer);
+        glBufferSubData(GL_ARRAY_BUFFER, 0, sizeof(float) * numParticles * 2, points);
+        glBindBuffer(GL_ARRAY_BUFFER, 0);
+        glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
+        glClear(GL_COLOR_BUFFER_BIT);
     }
 
     glDeleteProgram(shader);
@@ -135,4 +165,14 @@ int Engine::run() {
     glfwTerminate();
     return 0;
 
+}
+
+void Engine::updateArray(float *points, const Particles &particles) {
+    int index = 0;
+    for (Particle p: particles.m_particles) {
+        points[index] = (p.getX()/screenWidth - .5f)*2.0f; // --LUKE
+        index ++;
+        points[index] = (p.getY()/screenHeight - .5f)*2.0f;
+        index++;
+    }
 }

@@ -4,14 +4,10 @@
 
 #include "Particle.h"
 
-float Particle::interaction[5][5] ={{0,0,0,0,0},{0,0,0,0,0},{0,0,0,0,0},{0,0,0,0,0},{0,0,0,0,0}};
+float Particle::interaction[5][5] ={{1,-1,1,1,0},{1,1,0,-1,-1},{1,1,1,-1,0},{-1,-1,-1,1,0},{1,1,0,-1,0}};
 
-float Particle::interactionWithX(const Color &interactionWith, const float &distance, const float &xDistance) {
-    return distanceOnVelocity(distance)*xDistance/distance * Particle::interaction[m_color][interactionWith];
-}
-
-float Particle::interactionWithY(const Color &interactionWith, const float &distance, const float &yDistance) {
-    return distanceOnVelocity(distance)*yDistance/distance * Particle::interaction[m_color][interactionWith];
+float Particle::interactionWith(const Color &interactionWith, const float &totalDistance, const float &distance) {
+    return distanceOnVelocity(distance)*distance/totalDistance * Particle::interaction[m_color][interactionWith];
 }
 
 void Particle::initInteractions(int colorNum) {

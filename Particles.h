@@ -9,7 +9,7 @@
 #include "Particle.h"
 
 class Particles {
-private:
+public:
     std::array<Particle, numParticles> m_particles{};
 
 public:

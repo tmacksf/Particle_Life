@@ -5,7 +5,6 @@
 #ifndef PARTICLE_LIFE_DEFINITIONS_H
 #define PARTICLE_LIFE_DEFINITIONS_H
 
-
 #include <GL/glew.h>
 #include <GLFW/glfw3.h>
 #include <cstdlib>
@@ -26,7 +25,7 @@ enum Color : int {
     four,
     five
 };
-constexpr int numColors = 5;
+constexpr uint numColors = 5;
 
 constexpr Color addColor(Color c) {
     switch(c){
@@ -38,14 +37,21 @@ constexpr Color addColor(Color c) {
     }
 }
 
-//int particleColors[] = {0x51};
+constexpr float ColorArray[5][3] = {
+        {1.0f, 1.0f, 1.0f},
+        {1.0f, 1.0f, 1.0f},
+        {1.0f, 1.0f, 1.0f},
+        {1.0f, 1.0f, 1.0f},
+        {1.0f, 1.0f, 1.0f}
+};
 
-constexpr int particleSize = 2;
-constexpr float interactionDistance = 10;
-constexpr int numParticles = 200;
-constexpr int maxVelocity = 50;
-constexpr float screenWidth = 1280.0f;
-constexpr float screenHeight = 720.0f;
+constexpr uint particleSize = 2;
+constexpr float interactionDistance = 50;
+constexpr int numParticles = 500;
+constexpr float maxVelocity = 5.0f;
+constexpr float maxVelocityNegative = maxVelocity*-1;
+constexpr float screenWidth = 1920.0f;
+constexpr float screenHeight = 1080.0f;
 
 // Takes the distance and returns the value that the particle should be modified by
 float inline distanceOnVelocity(float distance) {

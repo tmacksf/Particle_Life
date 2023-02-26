@@ -41,31 +41,24 @@ public:
 
     static void initInteractions(int numColors);
 
-    void updateVelocity(const float accelerationX, const float accelerationY) {
-        if ((m_yVelocity + m_xVelocity) < maxVelocity) {
+    void updateVelocity(float accelerationX, float accelerationY) {
+        if ((m_yVelocity + accelerationY) < maxVelocity and (m_yVelocity + accelerationY) > maxVelocityNegative) {
             m_yVelocity += accelerationY;
-             m_xVelocity += accelerationX;
+        }
+        if ((m_xVelocity + accelerationX) < maxVelocity and (m_xVelocity + accelerationX) > maxVelocityNegative) {
+            m_xVelocity += accelerationX;
         }
     }
 
     void updatePosition() {
         // checking to see if particle is in the screen
-        if ((m_xPos + m_xVelocity) > screenWidth or (m_xPos + m_xVelocity) < 0.0f) {
-            m_xVelocity *= -1.0f;
-        }
-        else {
-            m_xPos += m_xVelocity;
-        }
-        if ((m_yPos + m_yVelocity) > screenHeight or (m_yPos + m_yVelocity) < 0.0f) {
-            m_yVelocity = -1.0f;
-        }
-        else {
-            m_yPos += m_yVelocity;
-        }
+        if ((m_xPos + m_xVelocity) > screenWidth or (m_xPos + m_xVelocity) < 0.0f) m_xVelocity *= -1.0f;
+        else m_xPos += m_xVelocity;
+        if ((m_yPos + m_yVelocity) > screenHeight or (m_yPos + m_yVelocity) < 0.0f) m_yVelocity *= -1.0f;
+        else m_yPos += m_yVelocity;
     }
 
-    float interactionWithX(const Color &interactionWith, const float &distance, const float &xDistance);
-    float interactionWithY(const Color &interactionWith, const float &distance, const float &yDistance);
+    float interactionWith(const Color &interactionWith, const float &totalDistance, const float &distance);
 };
 
 #endif //PARTICLE_LIFE_PARTICLE_H
