@@ -1,7 +1,3 @@
-//
-// Created by Thomas Mack on 18/02/2023.
-//
-
 #ifndef PARTICLE_LIFE_DEFINITIONS_H
 #define PARTICLE_LIFE_DEFINITIONS_H
 
@@ -16,6 +12,7 @@
 #include <chrono>
 #include <fstream>
 #include <sstream>
+#include <thread>
 
 
 enum Color : int {
@@ -38,20 +35,22 @@ constexpr Color addColor(Color c) {
 }
 
 constexpr float ColorArray[5][3] = {
-        {1.0f, 1.0f, 1.0f},
-        {1.0f, 1.0f, 1.0f},
-        {1.0f, 1.0f, 1.0f},
-        {1.0f, 1.0f, 1.0f},
-        {1.0f, 1.0f, 1.0f}
+        {54.0f, 120.0f, 153.0f},
+        {222.0f, 100.0f, 73.0f},
+        {121.0f, 30.0f, 148.0f},
+        {255.0f, 255.0f, 242.0f},
+        {65.0f, 211.0f, 189.0f}
 };
 
 constexpr uint particleSize = 2;
-constexpr float interactionDistance = 50;
-constexpr int numParticles = 500;
-constexpr float maxVelocity = 5.0f;
+constexpr float interactionDistance = 20;
+constexpr int numParticles = 2000;
+constexpr float maxVelocity = 3.0f;
 constexpr float maxVelocityNegative = maxVelocity*-1;
 constexpr float screenWidth = 1920.0f;
 constexpr float screenHeight = 1080.0f;
+
+const unsigned int maxThreads = std::thread::hardware_concurrency();
 
 // Takes the distance and returns the value that the particle should be modified by
 float inline distanceOnVelocity(float distance) {

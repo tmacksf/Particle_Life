@@ -1,7 +1,3 @@
-//
-// Created by Thomas Mack on 18/02/2023.
-//
-
 #ifndef PARTICLE_LIFE_PARTICLES_H
 #define PARTICLE_LIFE_PARTICLES_H
 
@@ -14,7 +10,6 @@ public:
 
 public:
     Particles();
-    void Start();
     void Update();
     Particle &getIndividual(int index) {
         return m_particles[index];

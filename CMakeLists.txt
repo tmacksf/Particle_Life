@@ -14,4 +14,7 @@ set(GLFW_BUILD_EXAMPLES OFF CACHE BOOL "" FORCE)
 add_subdirectory(Dependencies/GLFW)
 add_subdirectory(Dependencies/GLEW_cmake)
 
+set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -O2")
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O2")
+
 target_link_libraries(Particle_Life glfw ${OPENGL_gl_LIBRARY} libglew_static)

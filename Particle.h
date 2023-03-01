@@ -1,13 +1,10 @@
-//
-// Created by Thomas Mack on 18/02/2023.
-//
-
 #ifndef PARTICLE_LIFE_PARTICLE_H
 #define PARTICLE_LIFE_PARTICLE_H
 #include "Definitions.h"
 
 class Particle {
 private:
+    int m_id;
     float m_xPos;
     float m_yPos;
     float m_xVelocity;
@@ -15,7 +12,8 @@ private:
     Color m_color;
 
 public:
-    Particle(Color color, float xPos, float yPos, float xVelocity = 0, float yVelocity = 0)  {
+    Particle(int id, Color color, float xPos, float yPos, float xVelocity = 0, float yVelocity = 0)  {
+        m_id = id;
         m_color = color;
         m_xPos = xPos;
         m_yPos = yPos;
@@ -30,6 +28,8 @@ public:
     void setColor(Color c) {m_color = c;}
     Color getColor() {return m_color;}
 
+    int getId() {return m_id;}
+    void setId(int id) {m_id = id;}
     void setX(float x) {m_xPos = x;}
     float getX() const {return m_xPos;}
     void setY(float y) {m_yPos = y;}

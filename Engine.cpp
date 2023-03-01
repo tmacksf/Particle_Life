@@ -72,7 +72,7 @@ int Engine::run(Particles &particles) {
     #endif
 
     /* Create a windowed mode window and its OpenGL context */
-    window = glfwCreateWindow(screenWidth, screenHeight, "Particle Life", NULL, NULL);
+    window = glfwCreateWindow(screenWidth, screenHeight, "Particle Life", nullptr, nullptr);
     if (!window)
     {
         glfwTerminate();
@@ -81,6 +81,7 @@ int Engine::run(Particles &particles) {
 
     /* Make the window's context current */
     glfwMakeContextCurrent(window);
+    //glfwSwapInterval(1);
 
     /* Init glew */
     if (glewInit() != GLEW_OK) {
@@ -91,24 +92,19 @@ int Engine::run(Particles &particles) {
 
     // will have the x,y and r,g,b in this
     const int elementsPerPoint = 2;
-    float points[numParticles*elementsPerPoint];
+    const int rgb = 3;
+    float points[numParticles*elementsPerPoint*rgb];
     int index = 0;
     for (Particle p: particles.m_particles) {
         points[index] = (p.getX()/screenWidth - .5f)*2.0f; // --LUKE
         index ++;
         points[index] = (p.getY()/screenHeight - .5f)*2.0f;
         index++;
-    }
-
-    const int rgb = 3;
-    float colors[numParticles*3];
-    index = 0;
-    for (Particle p : particles.m_particles) {
-        colors[index] = ColorArray[p.getColor()][0];
+        points[index] = ColorArray[p.getColor()][0]/255.0f;
         index++;
-        colors[index] = ColorArray[p.getColor()][1];
+        points[index] = ColorArray[p.getColor()][1]/255.0f;
         index++;
-        colors[index] = ColorArray[p.getColor()][2];
+        points[index] = ColorArray[p.getColor()][2]/255.0f;
         index++;
     }
 
@@ -118,11 +114,15 @@ int Engine::run(Particles &particles) {
     glBindVertexArray(VAO);
     glGenBuffers(1, &buffer);
     glBindBuffer(GL_ARRAY_BUFFER, buffer);
-    glBufferData(GL_ARRAY_BUFFER, numParticles * elementsPerPoint * sizeof(float), points, GL_STATIC_DRAW);
+    glBufferData(GL_ARRAY_BUFFER, numParticles * elementsPerPoint * rgb * sizeof(float), points, GL_DYNAMIC_DRAW);
     //glBufferData(GL_ARRAY_BUFFER, numParticles * elementsPerPoint * sizeof(float), points, GL_DYNAMIC_DRAW);
 
+    //glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, sizeof(float) * elementsPerPoint, nullptr);
+    glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, sizeof(float) * 5, nullptr);
     glEnableVertexAttribArray(0);
-    glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, sizeof(float) * elementsPerPoint, nullptr);
+
+    glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 5*sizeof(float), (void*)(elementsPerPoint* sizeof(float)));
+    glEnableVertexAttribArray(1);
 
     std::string vertexShader;
     parseShader("../res/vertex.shader", vertexShader);
@@ -134,17 +134,15 @@ int Engine::run(Particles &particles) {
 
     glBindBuffer(GL_ARRAY_BUFFER, 0);
     glEnable(GL_POINTS);
-    glPointSize(5);
+    glPointSize(4);
     /* Loop until the user closes the window */
     while (!glfwWindowShouldClose(window))
     {
         // Render here
         glDrawArrays(GL_POINTS, 0, numParticles*2);
-        //glDeleteBuffers(numParticles*2, &buffer);
+
         // Swap front and back buffers
         glfwSwapBuffers(window);
-        // GPU waits one swap interval before updating
-        glfwSwapInterval(1);
 
         // Poll for and process events
         glfwPollEvents();
@@ -154,17 +152,16 @@ int Engine::run(Particles &particles) {
         updateArray(points, particles);
 
         glBindBuffer(GL_ARRAY_BUFFER, buffer);
-        glBufferSubData(GL_ARRAY_BUFFER, 0, sizeof(float) * numParticles * 2, points);
+        glBufferSubData(GL_ARRAY_BUFFER, 0, sizeof(float) * numParticles * 2 * rgb, points);
         glBindBuffer(GL_ARRAY_BUFFER, 0);
         glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
-        glClear(GL_COLOR_BUFFER_BIT);
+        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
     }
 
     glDeleteProgram(shader);
 
     glfwTerminate();
     return 0;
-
 }
 
 void Engine::updateArray(float *points, const Particles &particles) {
@@ -173,6 +170,6 @@ void Engine::updateArray(float *points, const Particles &particles) {
         points[index] = (p.getX()/screenWidth - .5f)*2.0f; // --LUKE
         index ++;
         points[index] = (p.getY()/screenHeight - .5f)*2.0f;
-        index++;
+        index = index+4;
     }
 }
