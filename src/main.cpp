@@ -1,10 +1,8 @@
-#include <iostream>
-
-#include "Engine.h"
+#include "Engine.hpp"
 
 int main() {
-    std::srand(time(nullptr));
-    Particles particles{};
-    Engine::run(particles);
-    return 0;
+  std::srand(time(nullptr));
+  Particles particles{};
+  Engine::run(particles);
+  return 0;
 }
