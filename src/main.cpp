@@ -2,7 +2,9 @@
 
 int main() {
   std::srand(time(nullptr));
-  Particles particles{};
-  Engine::run(particles);
+  Particles particles(screenWidth, screenHeight);
+  Engine e(screenWidth, screenHeight);
+  e.run(particles);
+  // std::cout << (testSquare() ? "passed" : "failed") << std::endl;
   return 0;
 }

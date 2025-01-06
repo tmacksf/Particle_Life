@@ -3,89 +3,153 @@
 //
 
 #include "Engine.hpp"
+#include "Definitions.hpp"
+#include "Shader.hpp"
 #include <GL/glew.h>
+// Need to avoid format sorting this
+#include <GL/gl.h>
 #include <GLFW/glfw3.h>
 #include <cassert>
 #include <ctime>
-#include <fstream>
 #include <iostream>
-#include <sstream>
+#include <vector>
 
-void draw_square(float x1, float y1, float x2, float y2) {
-  glBegin(GL_LINES);
-  glLineWidth(1);
-  x1 = (x1 / screenWidth - .5f) * 2.0f;
-  x2 = (x2 / screenHeight - .5f) * 2.0f;
-  glVertex2f(x1, y1);
-  glVertex2f(x1, y2);
-
-  glVertex2f(x1, y1);
-  glVertex2f(x2, y1);
-
-  glVertex2f(x2, y1);
-  glVertex2f(x2, y2);
-
-  glVertex2f(x1, y2);
-  glVertex2f(x2, y2);
-  glEnd();
+void fillPoints(Vector3f *points, const Particles &particles) {
+  int index = 0;
+  for (const auto &p : particles.m_particles) {
+    points[index] = Vector3f(p.getX(), p.getY(), 0.0f);
+    index++;
+    auto c = p.getColor();
+    points[index] =
+        Vector3f(ColorArray[c][0] / 255.0f, ColorArray[c][1] / 255.0f,
+                 ColorArray[c][2] / 255.0f);
+    index++;
+  }
 }
 
-void Engine::parseShader(const std::string &filePath, std::string &shader) {
-  std::ifstream stream(filePath);
-  std::string line;
-  std::stringstream ss;
-  while (getline(stream, line)) {
-    ss << line << "\n";
+void normaliseLines(std::vector<Vector3f> &lines) {
+  for (auto &l : lines) {
+    l.x = (l.x / screenWidth - 0.5f) * 2.0f;
+    l.y = (l.y / screenHeight - 0.5f) * 2.0f;
+  }
+}
+
+void processInput(GLFWwindow *window) {
+  if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS) {
+    std::cout << "Esc" << std::endl;
+    glfwSetWindowShouldClose(window, true);
+  }
+}
+
+void framebuffer_size_callback(GLFWwindow *window, int width, int height) {
+  glViewport(0, 0, width, height);
+}
+
+int _run() {
+  if (!glfwInit()) {
+    std::cout << "GLFW Window failed" << std::endl;
+    return -1;
   }
 
-  shader = ss.str();
-}
+  glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
+  glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
+  glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
+#ifdef __APPLE__
+  glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE);
+#endif
 
-unsigned int Engine::CreateShader(const std::string &vertexShader,
-                                  const std::string &fragmentShader) {
-  unsigned int program = glCreateProgram();
-  unsigned int vs = CompileShader(GL_VERTEX_SHADER, vertexShader);
-  unsigned int fs = CompileShader(GL_FRAGMENT_SHADER, fragmentShader);
+  GLFWwindow *window = glfwCreateWindow(screenWidth, screenHeight,
+                                        "Particle Life", nullptr, nullptr);
+  if (!window) {
+    glfwTerminate();
+    return -1;
+  }
+  glfwMakeContextCurrent(window);
 
-  assert(vs != 0);
-  assert(fs != 0);
-  glAttachShader(program, vs);
-  glAttachShader(program, fs);
-  glLinkProgram(program);
-  glValidateProgram(program);
+  /* Init glew */
+  if (glewInit() != GLEW_OK) {
+    std::cout << "Glew error" << std::endl;
+  }
+  std::cout << glGetString(GL_VERSION) << std::endl;
 
-  glDeleteShader(vs);
-  glDeleteShader(fs);
+  glViewport(0, 0, screenWidth, screenHeight);
+  glfwSetFramebufferSizeCallback(window, framebuffer_size_callback);
 
-  return program;
-}
+  auto shader = Shader("./res/vertex.shader", "./res/fragment.shader");
 
-unsigned int Engine::CompileShader(unsigned int type,
-                                   const std::string &source) {
-  unsigned int id = glCreateShader(type);
-  const char *src = source.c_str();
-  glShaderSource(id, 1, &src, nullptr);
-  glCompileShader(id);
+  float vertices1[] = {-0.5f, 0.0f, 0.0f, 0.5f, 0.0f, 0.0f, 0.0f, 0.5f, 0.0f};
+  float vertices2[] = {-0.5f, 0.0f, 0.0f, 0.5f, 0.0f, 0.0f, 0.0f, -0.5f, 0.0f};
 
-  int result;
-  glGetShaderiv(id, GL_COMPILE_STATUS, &result);
-  if (result == GL_FALSE) {
-    int length;
-    glGetShaderiv(id, GL_INFO_LOG_LENGTH, &length);
-    char *message = (char *)alloca(length * sizeof(char));
-    glGetShaderInfoLog(id, length, &length, message);
-    std::cout << "Failed to compile "
-              << (type == GL_VERTEX_SHADER ? "vertex" : "fragment")
-              << " shader." << std::endl;
-    std::cout << message << std::endl;
-    glDeleteShader(id);
-    return 0;
+  unsigned int VAOs[2];
+  unsigned int VBOs[2];
+  /******* What we need for drawing stuff *******/
+  unsigned int VAO, VBO;
+  glGenVertexArrays(1, &VAO);
+  glGenBuffers(1, &VBO);
+
+  glBindVertexArray(VAO);
+
+  glBindBuffer(GL_ARRAY_BUFFER, VBO);
+  glBufferData(GL_ARRAY_BUFFER, sizeof(vertices1), vertices1, GL_STATIC_DRAW);
+
+  glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), nullptr);
+  glEnableVertexAttribArray(0);
+  glBindBuffer(GL_ARRAY_BUFFER, 0);
+
+  VAOs[0] = VAO;
+  VBOs[0] = VBO;
+  glBindVertexArray(0);
+  /******* What we need for drawing stuff *******/
+  glGenVertexArrays(1, &VAO);
+  glGenBuffers(1, &VBO);
+
+  glBindVertexArray(VAO);
+
+  glBindBuffer(GL_ARRAY_BUFFER, VBO);
+  glBufferData(GL_ARRAY_BUFFER, sizeof(vertices2), vertices2, GL_DYNAMIC_DRAW);
+
+  glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), nullptr);
+  glEnableVertexAttribArray(0);
+  glBindBuffer(GL_ARRAY_BUFFER, 0);
+
+  glBindVertexArray(0);
+  VAOs[1] = VAO;
+  VBOs[1] = VBO;
+
+  while (!glfwWindowShouldClose(window)) {
+    glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
+    glClear(GL_COLOR_BUFFER_BIT);
+
+    processInput(window);
+
+    shader.Enable();
+    glBindVertexArray(VAOs[0]);
+    glDrawArrays(GL_TRIANGLES, 0, 3);
+    glBindVertexArray(0);
+
+    glBindVertexArray(VAOs[1]);
+    vertices2[0] += 0.05f;
+    if (vertices2[0] > 1)
+      vertices2[0] = -0.5f;
+    vertices2[1] += 0.05f;
+    if (vertices2[1] > 1)
+      vertices2[1] = -0.5f;
+    glBindBuffer(GL_ARRAY_BUFFER, VBOs[1]);
+    glBufferData(GL_ARRAY_BUFFER, sizeof(vertices2), vertices2,
+                 GL_DYNAMIC_DRAW);
+    glDrawArrays(GL_TRIANGLES, 0, 3);
+    glBindVertexArray(0);
+
+    glfwSwapBuffers(window);
+    glfwPollEvents();
   }
 
-  return id;
+  glfwTerminate();
+  return 0;
 }
 
-int Engine::run(Particles &particles) {
+int Engine::run(Particles particles) {
+  // return _run();
   GLFWwindow *window;
 
   /* Initialize the library */
@@ -119,92 +183,100 @@ int Engine::run(Particles &particles) {
 
   std::cout << glGetString(GL_VERSION) << std::endl;
 
-  // will have the x,y and r,g,b in this
-  const int elementsPerPoint = 2;
-  const int rgb = 3;
-  float points[numParticles * elementsPerPoint * rgb];
-  int index = 0;
-  for (Particle p : particles.m_particles) {
-    points[index] = (p.getX() / screenWidth - .5f) * 2.0f; // --LUKE
-    index++;
-    points[index] = (p.getY() / screenHeight - .5f) * 2.0f;
-    index++;
-    points[index] = ColorArray[p.getColor()][0] / 255.0f;
-    index++;
-    points[index] = ColorArray[p.getColor()][1] / 255.0f;
-    index++;
-    points[index] = ColorArray[p.getColor()][2] / 255.0f;
-    index++;
-  }
+  // Each particle will have a position and color
+  Vector3f Vertices[numParticles * 2];
 
-  unsigned int buffer;
+  fillPoints(Vertices, particles);
+  updateArray(Vertices, particles);
+
   unsigned int VAO;
+  unsigned int VBO;
+  glGenBuffers(1, &VBO);
+
   glGenVertexArrays(1, &VAO);
   glBindVertexArray(VAO);
-  glGenBuffers(1, &buffer);
-  glBindBuffer(GL_ARRAY_BUFFER, buffer);
-  glBufferData(GL_ARRAY_BUFFER,
-               numParticles * elementsPerPoint * rgb * sizeof(float), points,
-               GL_DYNAMIC_DRAW);
-  // glBufferData(GL_ARRAY_BUFFER, numParticles * elementsPerPoint *
-  // sizeof(float), points, GL_DYNAMIC_DRAW);
 
-  // glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, sizeof(float) *
-  // elementsPerPoint, nullptr);
-  glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, sizeof(float) * 5, nullptr);
+  glBindBuffer(GL_ARRAY_BUFFER, VBO);
+  glBufferData(GL_ARRAY_BUFFER, sizeof(Vertices), Vertices, GL_DYNAMIC_DRAW);
+
+  glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(float), (void *)0);
   glEnableVertexAttribArray(0);
-
-  glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 5 * sizeof(float),
-                        (void *)(elementsPerPoint * sizeof(float)));
+  glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(float),
+                        (void *)(3 * sizeof(float)));
   glEnableVertexAttribArray(1);
 
-  std::string vertexShader;
-  parseShader("./res/vertex.shader", vertexShader);
-  std::string fragmentShader;
-  parseShader("./res/fragment.shader", fragmentShader);
+  glBindBuffer(GL_ARRAY_BUFFER, 0); // unbind buffer
+  VAOs.push_back(VAO);
+  VBOs.push_back(VBO);
+  glBindVertexArray(0); // unbind
 
-  unsigned int shader = CreateShader(vertexShader, fragmentShader);
-  glUseProgram(shader);
+  std::vector<Vector3f> lines = std::vector<Vector3f>();
+  Shader pointsShader =
+      Shader("./res/points_vertex.shader", "./res/points_fragment.shader");
+  pointsShader.setFloat2("screenSize", screenWidth, screenHeight);
+  glPointSize(particleSize);
 
+  Shader lineShader = Shader("./res/vertex.shader", "./res/fragment.shader");
+  glGenBuffers(1, &VBO);
+
+  glGenVertexArrays(1, &VAO);
+  glBindVertexArray(VAO);
+
+  glBindBuffer(GL_ARRAY_BUFFER, VBO);
+  glBufferData(GL_ARRAY_BUFFER, lines.size() * sizeof(Vector3f), lines.data(),
+               GL_DYNAMIC_DRAW);
+
+  glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 0, (void *)0);
+  glEnableVertexAttribArray(0);
   glBindBuffer(GL_ARRAY_BUFFER, 0);
-  glEnable(GL_POINTS);
-  glPointSize(4);
-  /* Loop until the user closes the window */
+  VAOs.push_back(VAO);
+  VBOs.push_back(VBO);
+  glBindVertexArray(0);
+
   while (!glfwWindowShouldClose(window)) {
-    // Render here
-    glDrawArrays(GL_POINTS, 0, numParticles * 2);
+    glClearColor(0.2f, 0.3f, 0.2f, 1.0f);
+    glClear(GL_COLOR_BUFFER_BIT);
 
-    // Swap front and back buffers
-    glfwSwapBuffers(window);
-
-    // Poll for and process events
-    glfwPollEvents();
+    processInput(window);
 
     // Particles updated
-    particles.Update(draw_square);
-    updateArray(points, particles);
-    // std::this_thread::sleep_for(std::chrono::milliseconds(10000));
+    lines.clear();
+    particles.Update(lines);
+    updateArray(Vertices, particles);
+    normaliseLines(lines);
 
-    glBindBuffer(GL_ARRAY_BUFFER, buffer);
-    glBufferSubData(GL_ARRAY_BUFFER, 0, sizeof(float) * numParticles * 2 * rgb,
-                    points);
-    glBindBuffer(GL_ARRAY_BUFFER, 0);
-    glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
-    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+    // Render
+    pointsShader.Enable();
+    pointsShader.setFloat2("screenSize", screenWidth, screenHeight);
+    glBindVertexArray(VAOs[0]);
+    glBindBuffer(GL_ARRAY_BUFFER, VBOs[0]);
+    glBufferData(GL_ARRAY_BUFFER, sizeof(Vertices), Vertices, GL_DYNAMIC_DRAW);
+    glDrawArrays(GL_POINTS, 0, numParticles);
+    glBindVertexArray(0);
+
+    lineShader.Enable();
+    glBindBuffer(GL_ARRAY_BUFFER, VBOs[1]);
+    glBufferData(GL_ARRAY_BUFFER, lines.size() * sizeof(Vector3f), lines.data(),
+                 GL_DYNAMIC_DRAW);
+    glBindVertexArray(VAOs[1]);
+    glDrawArrays(GL_LINES, 0, lines.size());
+    glBindVertexArray(0);
+
+    glfwSwapBuffers(window);
+    glfwPollEvents();
   }
 
-  glDeleteProgram(shader);
+  pointsShader.Delete();
 
   glfwTerminate();
   return 0;
 }
 
-void Engine::updateArray(float *points, const Particles &particles) {
+void Engine::updateArray(Vector3f *points, const Particles &particles) {
   int index = 0;
   for (const Particle &p : particles.m_particles) {
-    points[index] = (p.getX() / screenWidth - .5f) * 2.0f; // --LUKE
-    index++;
-    points[index] = (p.getY() / screenHeight - .5f) * 2.0f;
-    index = index + 4;
+    points[index].x = p.getX();
+    points[index].y = p.getY();
+    index += 2;
   }
 }

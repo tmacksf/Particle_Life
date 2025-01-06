@@ -2,75 +2,112 @@
 #include <GL/glew.h>
 #include <GLFW/glfw3.h>
 #include <iostream>
+#include <vector>
 
-q_node *QuadTree::Build(square size, std::vector<Particle *> &particles,
-                        int depth,
-                        void(draw_square)(float, float, float, float)) {
-  auto tree = new q_node{};
-  if (particles.size() < QuadLimit ||
-      ((size.second.first - size.first.first) / 2 < interactionDistance ||
-       (size.second.second - size.first.second) / 2 < interactionDistance)) {
-    // we fill the vec with the points and return
-    draw_square(size.first.first, size.first.second, size.second.first,
-                size.second.second);
-    tree->particles = particles;
-    return tree;
+bool QuadTree::insert(int depth, Particle *particle, std::vector<Vector3f> &v) {
+  xy point = {particle->getX(), particle->getY()};
+  if (!boundary.Contains(point))
+    return false;
+
+  if (index < cap && northWest == nullptr) {
+    points[index] = particle;
+    index++;
+    return true;
   }
 
-  // How do we start this
-  const float x0 = size.first.first;
-  const float y0 = size.first.second;
-  const float xmid = (size.first.first + size.second.first) / 2;
-  const float ymid = (size.first.second + size.second.second) / 2;
-  const float x1 = size.second.first;
-  const float y1 = size.second.second;
+  if (!northWest)
+    subDivide(v);
 
-  square southwest = {{x0, y0}, {xmid, ymid}};
-  square northwest = {{x0, ymid}, {xmid, y1}};
-  square southeast = {{xmid, y0}, {x1, ymid}};
-  square northeast = {{xmid, ymid}, {x1, y1}};
+  if (southWest->insert(depth + 1, particle, v))
+    return true;
+  if (northWest->insert(depth + 1, particle, v))
+    return true;
+  if (southEast->insert(depth + 1, particle, v))
+    return true;
+  if (northEast->insert(depth + 1, particle, v))
+    return true;
 
-  auto southwest_vec = std::vector<Particle *>{};
-  auto northwest_vec = std::vector<Particle *>{};
-  auto southeast_vec = std::vector<Particle *>{};
-  auto northeast_vec = std::vector<Particle *>{};
-
-  for (int i = 0; i < particles.size(); i++) {
-    auto p = particles[i];
-    auto p_x = p->getX();
-    auto p_y = p->getY();
-
-    if (p_x >= southwest.first.first && p_y >= southwest.first.second &&
-        p_x < southwest.second.first && p_y < southwest.second.second) {
-      southwest_vec.push_back(p);
-    } else if (p_x >= northwest.first.first && p_y >= northwest.first.second &&
-               p_x < northwest.second.first && p_y <= northwest.second.second) {
-      northwest_vec.push_back(p);
-    } else if (p_x >= southeast.first.first && p_y >= southeast.first.second &&
-               p_x <= southeast.second.first && p_y < southeast.second.second) {
-      southeast_vec.push_back(p);
-    } else if (p_x >= northeast.first.first && p_y >= northeast.first.second &&
-               p_x <= northeast.second.first &&
-               p_y <= northeast.second.second) {
-      northeast_vec.push_back(p);
-    } else {
-      std::cout << "Error, unhandled thing: " << p_x << " " << p_y << std::endl;
-    }
-  }
-
-  tree->nodes[0] = Build(southwest, southwest_vec, depth + 1, draw_square);
-  tree->nodes[0] = Build(northwest, northwest_vec, depth + 1, draw_square);
-  tree->nodes[0] = Build(southeast, southeast_vec, depth + 1, draw_square);
-  tree->nodes[0] = Build(northeast, northeast_vec, depth + 1, draw_square);
-  return tree;
+  std::cout << "Should not be here!" << std::endl;
+  return false;
 }
 
-void helper(q_node *node) {
-  for (int i = 0; i < 4; i++) {
-    if (node->nodes[i] != nullptr)
-      helper(node->nodes[i]);
-  }
-  delete node;
+void QuadTree::subDivide(std::vector<Vector3f> &v) {
+  float cx = (boundary.high.x + boundary.low.x) / 2;
+  float cy = (boundary.high.y + boundary.low.y) / 2;
+  southWest = new QuadTree(Square({boundary.low.x, boundary.low.y}, {cx, cy}));
+  northWest = new QuadTree(Square({boundary.low.x, cy}, {cx, boundary.high.y}));
+  southEast = new QuadTree(Square({cx, boundary.low.y}, {boundary.high.x, cy}));
+  northEast =
+      new QuadTree(Square({cx, cy}, {boundary.high.x, boundary.high.y}));
+
+  v.push_back({cx, cy, 0.0f});
+  v.push_back({boundary.low.x, cy, 0.0f});
+
+  v.push_back({cx, cy, 0.0f});
+  v.push_back({cx, boundary.low.y, 0.0f});
+
+  v.push_back({cx, cy, 0.0f});
+  v.push_back({cx, boundary.high.y, 0.0f});
+
+  v.push_back({cx, cy, 0.0f});
+  v.push_back({boundary.high.x, cy, 0.0f});
 }
 
-void QuadTree::tear_down() { helper(nodes); }
+void QuadTree::helper(QuadTree *q) {
+  if (!q) {
+    std::cout << "This shouldn't happen" << std::endl;
+  }
+  if (q->southWest)
+    helper(q->southWest);
+  if (q->northWest)
+    helper(q->northWest);
+  if (q->southEast)
+    helper(q->southEast);
+  if (q->northEast)
+    helper(q->northEast);
+
+  delete q;
+}
+
+void QuadTree::tear_down() { helper(this); }
+
+void QuadTree::queryRange(std::vector<Particle *> &res, Square s) {
+  if (!boundary.Intersects(s)) {
+    return;
+  }
+
+  for (ulong i = 0; i < points.size(); i++) {
+    if (!points[i])
+      continue;
+    res.push_back(points[i]);
+  }
+
+  if (southWest != nullptr)
+    southWest->queryRange(res, s);
+  if (northWest != nullptr)
+    northWest->queryRange(res, s);
+  if (southEast != nullptr)
+    southEast->queryRange(res, s);
+  if (northEast != nullptr)
+    northEast->queryRange(res, s);
+}
+
+bool testSquare() {
+  bool pass = true;
+
+  Square s1 = Square({0, 0}, {100, 100});
+  Square s2 = Square({10, 10}, {20, 20});
+
+  pass = s1.Intersects(s2);
+  pass = s2.Intersects(s1);
+
+  s2 = Square({90, 90}, {200, 200});
+  pass = s1.Intersects(s2);
+  pass = s2.Intersects(s1);
+
+  s2 = Square({200, 200}, {201, 201});
+  pass = !s1.Intersects(s2);
+  pass = !s2.Intersects(s1);
+
+  return pass;
+}

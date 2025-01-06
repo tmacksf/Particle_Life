@@ -1,10 +1,38 @@
 #ifndef PARTICLE_LIFE_PARTICLE_H
 #define PARTICLE_LIFE_PARTICLE_H
 #include "Definitions.hpp"
+#include <algorithm>
+
+typedef struct xy {
+  float x, y;
+} xy;
+
+typedef struct Square {
+  xy low, high;
+
+  Square() { low = high = {0, 0}; }
+  Square(xy _low, xy _high) {
+    low = _low;
+    high = _high;
+  }
+
+  inline bool Contains(xy p) const {
+    return (p.x >= low.x && p.x <= high.x) && (p.y >= low.y && p.y <= high.y);
+  }
+
+  bool Intersects(Square &r) const {
+    return std::max(r.low.x, low.x) < std::min(r.high.x, high.x) &&
+           std::max(r.low.y, low.y) < std::min(r.high.y, high.y);
+  }
+} Square;
+
+bool testSquare();
+
 
 class Particle {
 private:
   int m_id;
+  xy m_pos;
   float m_xPos;
   float m_yPos;
   float m_xVelocity;
@@ -30,21 +58,14 @@ public:
 
   static float interaction[5][5];
 
-  void setColor(Color c) { m_color = c; }
-  Color getColor() const { return m_color; }
-
+  inline Color getColor() const { return m_color; }
   inline int getId() const { return m_id; }
-  void setId(int id) { m_id = id; }
-  void setX(float x) { m_xPos = x; }
   inline float getX() const { return m_xPos; }
   inline float getX_original() const { return m_xPos_original; }
-  void setY(float y) { m_yPos = y; }
   inline float getY() const { return m_yPos; }
   inline float getY_original() const { return m_xPos_original; }
   inline float getYVelocity() const { return m_yVelocity; }
-  void setYVelocity(float y_vel) { m_yVelocity = y_vel; }
   inline float getXVelocity() const { return m_xVelocity; }
-  void setXVelocity(float x_vel) { m_xVelocity = x_vel; }
   void setOriginals() {
     m_xPos_original = m_xPos;
     m_yPos_original = m_yPos;
@@ -75,11 +96,11 @@ public:
       m_yPos += m_yVelocity;
   }
 
-  inline float interactionWith(const Color interactionWith,
+  inline float interactionWith(const Particle *p,
                                const float totalDistance,
                                const float distance) {
     return distanceOnVelocity(distance / totalDistance *
-                              Particle::interaction[m_color][interactionWith]);
+                              Particle::interaction[m_color][p->getColor()]);
   }
 };
 

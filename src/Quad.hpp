@@ -2,25 +2,42 @@
 #define PARTICLE_LIFE_QUAD_H
 
 #include "Particle.hpp"
+#include <array>
 #include <vector>
-
-const int QuadLimit = 1;
-
-typedef struct q_node {
-  std::vector<Particle *> particles;
-  struct q_node *nodes[4];
-} q_node;
-
-typedef std::pair<std::pair<float, float>, std::pair<float, float>> square;
 
 class QuadTree {
 private:
-  q_node *nodes;
+  Square boundary;
+  QuadTree *southWest;
+  QuadTree *northWest;
+  QuadTree *southEast;
+  QuadTree *northEast;
+
+  static constexpr unsigned int cap = 2;
+
+  std::array<Particle *, cap> points;
+  unsigned int index = 0;
+
+  void subDivide(std::vector<Vector3f> &);
+
+  void helper(QuadTree *q);
 
 public:
-  q_node *Build(square size, std::vector<Particle *> &particles, int,
-                void(float, float, float, float));
-  void tear_down();
+  QuadTree(Square b) {
+    boundary = b;
+
+    southWest = nullptr;
+    northWest = nullptr;
+    southEast = nullptr;
+    northEast = nullptr;
+
+    for (ulong i = 0; i < points.size(); i++) {
+      points[i] = nullptr;
+    }
+  }
+  bool insert(int, Particle *, std::vector<Vector3f> &);
+  void tear_down(); // Fully destroys the object including (this)
+  void queryRange(std::vector<Particle *> &, Square);
 };
 
 #endif
