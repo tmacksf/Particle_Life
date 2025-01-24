@@ -5,8 +5,7 @@
 #include <vector>
 
 bool QuadTree::insert(int depth, Particle *particle, std::vector<Vector3f> &v) {
-  xy point = {particle->getX(), particle->getY()};
-  if (!boundary.Contains(point))
+  if (!boundary.Contains(particle->getPos()))
     return false;
 
   if (index < cap && northWest == nullptr) {

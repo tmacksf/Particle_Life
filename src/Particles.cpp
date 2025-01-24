@@ -4,34 +4,6 @@
 #include <cstdio>
 #include <random>
 
-// void Particles::Update(std::vector<Vector3f> &) {
-//   for (Particle &p : m_particles) {
-//     p.setOriginals();
-//   }
-//   for (Particle &p : m_particles) {
-//     float startingx = p.getX();
-//     float startingy = p.getY();
-//     float accelerationX = 0;
-//     float accelerationY = 0;
-//     for (const Particle &p2 : m_particles) {
-//       if (p.getId() == p2.getId())
-//         continue;
-//       float xDist = p2.getX_original() - startingx;
-//       float yDist = p2.getY_original() - startingy;
-//       float dist = sqrt(xDist * xDist + yDist * yDist);
-//       if (dist == 0) { // avoiding divide by zero NaN
-//         accelerationX += p.interactionWith(&p2, 0.0001f, 0.0001f);
-//         accelerationY += p.interactionWith(&p2, 0.0001f, 0.0001f);
-//       } else if (dist < interactionDistance) {
-//         accelerationX += p.interactionWith(&p2, dist, xDist);
-//         accelerationY += p.interactionWith(&p2, dist, yDist);
-//       }
-//     }
-//     p.updateVelocity(accelerationX, accelerationY);
-//     p.updatePosition();
-//   }
-// }
-
 void Particles::Update(std::vector<Vector3f> &lines) {
   auto t = new QuadTree(Square({0.0f, 0.0f}, {screenWidth, screenHeight}));
 
@@ -42,38 +14,42 @@ void Particles::Update(std::vector<Vector3f> &lines) {
 
   unsigned int cmps = 0;
 
+  // for (int i = 0; i < m_particles.size(); i++) {
+  //   for (int j = i + 1; j < m_particles.size(); j++) {
+  //     Particle &b1 = m_particles[i];
+  //     Particle &b2 = m_particles[j];
+  //     if (b1.isHit(b2)) {
+  //       auto v1 = b1.collision(b2);
+  //       auto v2 = b2.collision(b1);
+  //
+  //       b1.setVel(v1);
+  //       b2.setVel(v2);
+  //     }
+  //   }
+  // }
+
   for (Particle &p : m_particles) {
     float accelerationX = 0;
     float accelerationY = 0;
 
-    auto d = interactionDistance;
-    Square s =
-        Square({p.getX() - d, p.getY() - d}, {p.getX() + d, p.getY() + d});
+    // auto d = interactionDistance;
+    constexpr float d = particleSize * 2;
+    Square s = Square({p.getPos().x - d, p.getPos().y - d},
+                      {p.getPos().x + d, p.getPos().y + d});
     auto possible_interactions = std::vector<Particle *>();
     t->queryRange(possible_interactions, s);
 
     for (Particle *p_2 : possible_interactions) {
-      if (p.getId() == p_2->getId())
+      if (p.getId() == p_2->getId()) {
         continue;
-      float xDist = p_2->getX_original() - p.getX();
-      float yDist = p_2->getY_original() - p.getY();
-      float dist = sqrt(xDist * xDist + yDist * yDist);
-      cmps++;
-
-      if (dist <= particleRadius * 2) {
-        // collision
       }
-
-      // if (dist == 0) { // avoiding divide by zero NaN
-      //   accelerationX += p.interactionWith(p_2, 0.0001f, 0.0001f);
-      //   accelerationY += p.interactionWith(p_2, 0.0001f, 0.0001f);
-      // } else if (dist < interactionDistance) {
-      //   accelerationX += p.interactionWith(p_2, dist, xDist);
-      //   accelerationY += p.interactionWith(p_2, dist, yDist);
-      // }
+      auto v1 = p.collision(p_2);
+      p.setVel(v1);
     }
+  }
 
-    p.updateVelocity(accelerationX, accelerationY);
+  for (Particle &p : m_particles) {
+    // p.addGravity();
     p.updatePosition();
   }
 
@@ -102,8 +78,11 @@ Particles::Particles(float w, float h) {
     float initialY = (float)yPosition(generator);
     float initialXVelocity = (float)velocityGeneration(generator) - maxVelocity;
     float initialYVelocity = (float)velocityGeneration(generator) - maxVelocity;
-    m_particles[i] = Particle(i + 1, colorIndex, initialX, initialY,
-                              initialXVelocity, initialYVelocity);
+    // float initialXVelocity = 0.0f;
+    // float initialYVelocity = 0.0f;
+    m_particles[i] =
+        Particle(i + 1, colorIndex, initialX, initialY, particleRadius,
+                 initialXVelocity, initialYVelocity);
     temp--;
 
     if (!temp) {

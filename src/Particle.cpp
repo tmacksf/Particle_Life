@@ -13,3 +13,7 @@ void Particle::initInteractions(int colorNum) {
     }
   }
 }
+
+bool Particle::isHit(Particle &p) {
+  return m_pos.distance(p.m_pos) < (p.m_radius + m_radius);
+}
