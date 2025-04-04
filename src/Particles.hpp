@@ -3,7 +3,6 @@
 
 #include "Particle.hpp"
 #include <array>
-#include <sys/types.h>
 #include <vector>
 
 class Particles {
@@ -12,7 +11,7 @@ public:
 
 public:
   Particles(float, float);
-  void Update(std::vector<Vector3f> &lines);
+  void Update(std::vector<Vec3> &lines);
 };
 
 #endif // PARTICLE_LIFE_PARTICLES_H

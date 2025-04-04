@@ -4,7 +4,7 @@
 #include <iostream>
 #include <vector>
 
-bool QuadTree::insert(int depth, Particle *particle, std::vector<Vector3f> &v) {
+bool QuadTree::insert(int depth, Particle *particle, std::vector<Vec3> &v) {
   if (!boundary.Contains(particle->getPos()))
     return false;
 
@@ -30,7 +30,7 @@ bool QuadTree::insert(int depth, Particle *particle, std::vector<Vector3f> &v) {
   return false;
 }
 
-void QuadTree::subDivide(std::vector<Vector3f> &v) {
+void QuadTree::subDivide(std::vector<Vec3> &v) {
   float cx = (boundary.high.x + boundary.low.x) / 2;
   float cy = (boundary.high.y + boundary.low.y) / 2;
   southWest = new QuadTree(Square({boundary.low.x, boundary.low.y}, {cx, cy}));

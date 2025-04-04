@@ -1,80 +1,34 @@
 #ifndef PARTICLE_LIFE_PARTICLE_H
 #define PARTICLE_LIFE_PARTICLE_H
 #include "Definitions.hpp"
-#include <algorithm>
+#include "Vec.hpp"
 #include <cmath>
-
-typedef struct xy {
-  float x, y;
-
-  xy subtract(struct xy s) const { return {x - s.x, y - s.y}; }
-
-  xy projection(struct xy s) const {
-    float dotProduct = x * s.x + y * s.y;
-    float magSquared = s.x * s.x + s.y * s.y;
-    if (magSquared == 0) {
-      return xy{};
-    }
-    auto scale = dotProduct / magSquared;
-    return s.multiply(scale);
-  }
-
-  xy multiply(float scalar) const { return xy{x * scalar, y * scalar}; }
-
-  float distance(xy o) const {
-    float dx = o.x - x;
-    float dy = o.y - y;
-    return sqrt(dx * dx + dy * dy);
-  }
-} xy;
-
-typedef struct Square {
-  xy low, high;
-
-  Square() { low = high = {0, 0}; }
-  Square(xy _low, xy _high) {
-    low = _low;
-    high = _high;
-  }
-
-  inline bool Contains(xy p) const {
-    return (p.x >= low.x && p.x <= high.x) && (p.y >= low.y && p.y <= high.y);
-  }
-
-  bool Intersects(Square &r) const {
-    return std::max(r.low.x, low.x) < std::min(r.high.x, high.x) &&
-           std::max(r.low.y, low.y) < std::min(r.high.y, high.y);
-  }
-} Square;
-
-bool testSquare();
+#include <csignal>
+#include <cstdio>
+#include <iostream>
 
 class Particle {
 private:
   int m_id;
-  xy m_pos;
-  xy m_vel;
+  Vec2 m_pos;
+  Vec2 m_vel;
   Color m_color;
   float m_radius;
   float m_mass;
-
-  // We calculat everything using this
-  xy m_pos_original;
+  Vec2 m_acceleration;
 
 public:
-  static constexpr float restitution = 0.95f; // Coefficient of restitution
-
-  bool isHit(Particle &p);
+  static constexpr float restitution = 1.0f; // Coefficient of restitution
 
   Particle(int id, Color color, float xPos, float yPos, float radius,
            float xVelocity = 0, float yVelocity = 0) {
     m_id = id;
     m_color = color;
-    m_pos = {.x = xPos, .y = yPos};
-    m_vel = {.x = xVelocity, .y = yVelocity};
-    m_pos_original = m_pos;
+    m_pos = Vec2(xPos, yPos);
+    m_vel = Vec2(xVelocity, yVelocity);
     m_radius = radius;
     m_mass = 1.0f;
+    m_acceleration = Vec2();
   }
 
   Particle() = default;
@@ -82,14 +36,17 @@ public:
   static float interaction[5][5];
 
   inline Color getColor() const { return m_color; }
-  inline int getId() const { return m_id; }
-  inline xy getPos() const { return m_pos; }
-  inline xy getOriginalPos() const { return m_pos_original; }
-  inline xy getVelocity() const { return m_vel; }
-  inline void setVel(xy v) { m_vel = v; }
-  void setOriginals() { m_pos_original = m_pos; }
+  inline int Id() const { return m_id; }
+  inline Vec2 getPos() const { return m_pos; }
+  inline Vec2 getVelocity() const { return m_vel; }
+  inline void setVel(Vec2 v) { m_vel = v; }
 
   static void initInteractions(int numColors);
+
+  void update();
+  void edges();
+
+  void interacts(const Particle *p);
 
   void updateVelocity(float accelerationX, float accelerationY) {
     m_vel.y += accelerationY;
@@ -108,37 +65,73 @@ public:
       m_vel.x = maxVelocityNegative;
   }
 
-  void updatePosition() {
-    // checking to see if particle is in the screen
-    if ((m_pos.x + m_vel.x) > screenWidth or (m_pos.x + m_vel.x) < 0.0f)
-      m_vel.x = (-restitution * m_vel.x);
-    else
-      m_pos.x += m_vel.x;
-    if ((m_pos.y + m_vel.y) > screenHeight or (m_pos.y + m_vel.y) < 0.0f)
-      m_vel.y = (-restitution * m_vel.y);
-    else
-      m_pos.y += m_vel.y;
-  }
+  void collide(Particle *p) {
+    Vec2 impactVector = p->m_pos.sub(m_pos);
+    float d = impactVector.mag();
 
-  // inline float interactionWith(const Particle *p, const float totalDistance,
-  //                              const float distance) {
-  //   return distanceOnVelocity(distance / totalDistance *
-  //                             Particle::interaction[m_color][p->getColor()]);
-  // }
+    if (d > (m_radius + p->m_radius)) {
+      return;
+    }
+    float overlap = d - (m_radius + p->m_radius);
+    Vec2 dir = impactVector.setmag(overlap * 0.5);
+    m_pos = m_pos.add(dir);
+    p->m_pos = p->m_pos.sub(dir);
+    d = m_radius + p->m_radius;
+    impactVector = impactVector.setmag(d);
 
-  inline xy collision(const Particle *p) {
-    float sf = ((1.0f + restitution) * p->m_mass) / (p->m_mass + m_mass);
-    xy vDiff = m_vel.subtract(p->m_vel);
-    xy rDiff = m_pos.subtract(p->m_pos);
-    xy proj = vDiff.projection(rDiff);
-
-    return m_vel.subtract(proj.multiply(sf));
+    float m_sum = p->m_mass + m_mass;
+    Vec2 velDiff = p->m_vel.sub(m_vel);
+    // Particle A
+    float num = 2.0 * velDiff.dot(impactVector);
+    float den = m_sum * d * d;
+    if (den == 0.0) {
+      den = almostZero;
+    }
+    Vec2 deltaVa = impactVector.multiply(p->m_mass * num / den);
+    m_vel = m_vel.add(deltaVa);
+    // Particle B
+    Vec2 deltaVb = impactVector.multiply(m_mass * -num / den);
+    p->m_vel = p->m_vel.add(deltaVb);
   }
 
   inline void addGravity() {
     const float pxPerM = 50;
     const float fps = 60;
     m_vel.y -= 9.8 / (fps * fps) * pxPerM;
+  }
+
+  inline bool checkNan(bool frontdetection) {
+    bool res = false;
+    if (m_pos.isNan()) {
+      std::cout << "pos" << std::endl;
+      res = true;
+    }
+    if (m_vel.isNan()) {
+      std::cout << "vel" << std::endl;
+      res = true;
+    }
+    if (m_radius != m_radius) {
+      std::cout << "radius" << std::endl;
+      res = true;
+    }
+    if (m_mass != m_mass) {
+      std::cout << "mass" << std::endl;
+      res = true;
+    }
+    if (m_acceleration.isNan()) {
+      std::cout << "Acceleration nan" << std::endl;
+      res = true;
+    }
+
+    if (res) {
+      if (frontdetection) {
+        std::cout << "Front detection" << std::endl;
+      } else {
+        std::cout << "Back detection" << std::endl;
+      }
+      exit(0);
+    }
+    return res;
   }
 };
 

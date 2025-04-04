@@ -4,53 +4,39 @@
 #include <cstdio>
 #include <random>
 
-void Particles::Update(std::vector<Vector3f> &lines) {
+void Particles::Update(std::vector<Vec3> &lines) {
   auto t = new QuadTree(Square({0.0f, 0.0f}, {screenWidth, screenHeight}));
-
   for (ulong i = 0; i < m_particles.size(); i++) {
     t->insert(0, &m_particles[i], lines);
-    m_particles[i].setOriginals();
+    // m_particles[i].addGravity();
   }
-
-  unsigned int cmps = 0;
-
-  // for (int i = 0; i < m_particles.size(); i++) {
-  //   for (int j = i + 1; j < m_particles.size(); j++) {
-  //     Particle &b1 = m_particles[i];
-  //     Particle &b2 = m_particles[j];
-  //     if (b1.isHit(b2)) {
-  //       auto v1 = b1.collision(b2);
-  //       auto v2 = b2.collision(b1);
-  //
-  //       b1.setVel(v1);
-  //       b2.setVel(v2);
-  //     }
-  //   }
-  // }
 
   for (Particle &p : m_particles) {
     float accelerationX = 0;
     float accelerationY = 0;
 
-    // auto d = interactionDistance;
-    constexpr float d = particleSize * 2;
+    constexpr float d = interactionDistance;
     Square s = Square({p.getPos().x - d, p.getPos().y - d},
                       {p.getPos().x + d, p.getPos().y + d});
     auto possible_interactions = std::vector<Particle *>();
     t->queryRange(possible_interactions, s);
 
     for (Particle *p_2 : possible_interactions) {
-      if (p.getId() == p_2->getId()) {
+      if (p.Id() == p_2->Id())
         continue;
-      }
-      auto v1 = p.collision(p_2);
-      p.setVel(v1);
+      p.interacts(p_2);
+    }
+
+    for (Particle *p_2 : possible_interactions) {
+      if (p_2->Id() <= p.Id())
+        continue;
+      p.collide(p_2);
     }
   }
 
   for (Particle &p : m_particles) {
-    // p.addGravity();
-    p.updatePosition();
+    p.update();
+    p.edges();
   }
 
   // std::cout << "Comparisons: " << cmps
@@ -73,21 +59,19 @@ Particles::Particles(float w, float h) {
   int particlesPerColor = numParticles / numColors;
   Color colorIndex = one;
   int temp = particlesPerColor;
-  for (int i = 0; i < numParticles; i++) {
+  for (ulong i = 0; i < numParticles; i++) {
     float initialX = (float)xPosition(generator);
     float initialY = (float)yPosition(generator);
     float initialXVelocity = (float)velocityGeneration(generator) - maxVelocity;
     float initialYVelocity = (float)velocityGeneration(generator) - maxVelocity;
-    // float initialXVelocity = 0.0f;
-    // float initialYVelocity = 0.0f;
     m_particles[i] =
         Particle(i + 1, colorIndex, initialX, initialY, particleRadius,
                  initialXVelocity, initialYVelocity);
-    temp--;
+    // temp--;
 
-    if (!temp) {
-      colorIndex = addColor(colorIndex);
-      temp = particlesPerColor;
-    }
+    // if (!temp) {
+    colorIndex = addColor(colorIndex);
+    //   temp = particlesPerColor;
+    // }
   }
 }

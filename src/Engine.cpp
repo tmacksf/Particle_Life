@@ -6,28 +6,28 @@
 #include "Definitions.hpp"
 #include "Shader.hpp"
 #include <GL/glew.h>
-// Need to avoid format sorting this
-#include <GL/gl.h>
-#include <GLFW/glfw3.h>
 #include <cassert>
 #include <ctime>
 #include <iostream>
 #include <vector>
 
-void fillPoints(Vector3f *points, const Particles &particles) {
+// Need to avoid format sorting this
+#include <GL/gl.h>
+#include <GLFW/glfw3.h>
+
+void fillPoints(Vec3 *points, const Particles &particles) {
   int index = 0;
   for (const auto &p : particles.m_particles) {
-    points[index] = Vector3f(p.getPos().x, p.getPos().y, 0.0f);
+    points[index] = Vec3(p.getPos().x, p.getPos().y, 0.0f);
     index++;
     auto c = p.getColor();
-    points[index] =
-        Vector3f(ColorArray[c][0] / 255.0f, ColorArray[c][1] / 255.0f,
-                 ColorArray[c][2] / 255.0f);
+    points[index] = Vec3(ColorArray[c][0] / 255.0f, ColorArray[c][1] / 255.0f,
+                         ColorArray[c][2] / 255.0f);
     index++;
   }
 }
 
-void normaliseLines(std::vector<Vector3f> &lines) {
+void normaliseLines(std::vector<Vec3> &lines) {
   for (auto &l : lines) {
     l.x = (l.x / screenWidth - 0.5f) * 2.0f;
     l.y = (l.y / screenHeight - 0.5f) * 2.0f;
@@ -81,7 +81,7 @@ int Engine::run(Particles particles) {
   std::cout << glGetString(GL_VERSION) << std::endl;
 
   // Each particle will have a position and color
-  Vector3f Vertices[numParticles * 2];
+  Vec3 Vertices[numParticles * 2];
 
   fillPoints(Vertices, particles);
   updateArray(Vertices, particles);
@@ -107,7 +107,7 @@ int Engine::run(Particles particles) {
   VBOs.push_back(VBO);
   glBindVertexArray(0); // unbind
 
-  std::vector<Vector3f> lines = std::vector<Vector3f>();
+  std::vector<Vec3> lines = std::vector<Vec3>();
   Shader pointsShader =
       Shader("./res/points_vertex.shader", "./res/points_fragment.shader");
   pointsShader.setFloat2("screenSize", screenWidth, screenHeight);
@@ -123,7 +123,7 @@ int Engine::run(Particles particles) {
   glBindVertexArray(VAO);
 
   glBindBuffer(GL_ARRAY_BUFFER, VBO);
-  glBufferData(GL_ARRAY_BUFFER, lines.size() * sizeof(Vector3f), lines.data(),
+  glBufferData(GL_ARRAY_BUFFER, lines.size() * sizeof(Vec3), lines.data(),
                GL_DYNAMIC_DRAW);
 
   glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 0, (void *)0);
@@ -138,11 +138,11 @@ int Engine::run(Particles particles) {
   auto startTime = timeInMS();
   while (!glfwWindowShouldClose(window)) {
     startTime = timeInMS();
-    glClearColor(0.2f, 0.3f, 0.2f, 1.0f);
+    glClearColor(0.01f, 0.01f, 0.01f, 1.0f);
     glClear(GL_COLOR_BUFFER_BIT);
 
-    paused = false;
     processInput(window);
+    paused = false;
     if (glfwGetKey(window, GLFW_KEY_P) == GLFW_PRESS) {
       paused = true;
     }
@@ -166,7 +166,7 @@ int Engine::run(Particles particles) {
 
     lineShader.Enable();
     glBindBuffer(GL_ARRAY_BUFFER, VBOs[1]);
-    glBufferData(GL_ARRAY_BUFFER, lines.size() * sizeof(Vector3f), lines.data(),
+    glBufferData(GL_ARRAY_BUFFER, lines.size() * sizeof(Vec3), lines.data(),
                  GL_DYNAMIC_DRAW);
     glBindVertexArray(VAOs[1]);
     glDrawArrays(GL_LINES, 0, lines.size());
@@ -175,7 +175,7 @@ int Engine::run(Particles particles) {
     glfwSwapBuffers(window);
     glfwPollEvents();
 
-    fps(timeInMS() - startTime);
+    // fps(timeInMS() - startTime);
   }
 
   pointsShader.Delete();
@@ -184,7 +184,7 @@ int Engine::run(Particles particles) {
   return 0;
 }
 
-void Engine::updateArray(Vector3f *points, const Particles &particles) {
+void Engine::updateArray(Vec3 *points, const Particles &particles) {
   int index = 0;
   for (const Particle &p : particles.m_particles) {
     points[index].x = p.getPos().x;

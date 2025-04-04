@@ -18,7 +18,7 @@ private:
   std::array<Particle *, cap> points;
   unsigned int index = 0;
 
-  void subDivide(std::vector<Vector3f> &);
+  void subDivide(std::vector<Vec3> &);
 
   void helper(QuadTree *q);
 
@@ -35,7 +35,7 @@ public:
       points[i] = nullptr;
     }
   }
-  bool insert(int, Particle *, std::vector<Vector3f> &);
+  bool insert(int, Particle *, std::vector<Vec3> &);
   void tear_down(); // Fully destroys the object including (this)
   void queryRange(std::vector<Particle *> &, Square);
 };
